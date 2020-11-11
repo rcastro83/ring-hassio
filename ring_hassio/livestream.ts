@@ -21,10 +21,10 @@ const PORT = process.env.RING_PORT;
       // Refresh token is used when 2fa is on
       refreshToken: process.env.RING_REFRESH_TOKEN!,
       debug: true
-    }),
-    [camera] = await ringApi.getCameras()
+    });
+    const cameras = await ringApi.getCameras();
 
-  if (!camera) {
+  if (cameras.length <= 0) {
     console.log('No cameras found')
     return
   }
@@ -42,32 +42,30 @@ const PORT = process.env.RING_PORT;
       }
     }
   });*/
-  console.log('output directory: '+publicOutputDirectory)
 
   var server = http.createServer(function (req, res) {
     var uri = url.parse(req.url).pathname;
-    console.log('requested uri: '+uri)
     if (uri == '/index.html' || uri == '/') {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.write('<html><head><title>Ring Livestream' +
           '</title></head><body>');
       res.write('<h1>Welcome to your Ring Livestream!</h1>');
-      res.write('<video width="352" height="198" controls autoplay src="public/stream.m3u8"></video>');
+      cameras.forEach(async (camera: any, index: number) => {
+        res.write(`<video width="352" height="198" controls autoplay src="public/${index}-stream.m3u8"></video>`);
+        res.write('<br />');
+      });
       res.write('<br/>If you cannot see the video above open <a href="public/stream.m3u8">the stream</a> in a player such as VLC.');
       res.end();
       return;
     }
 
     var filename = path.join("./", uri);
-    console.log('mapped filename: '+filename)
 	  fs.exists(filename, function (exists) {
 		  if (!exists) {
-		  	console.log('file not found: ' + filename);
 		  	res.writeHead(404, { 'Content-Type': 'text/plain' });
 		  	res.write('file not found: %s\n', filename);
 		  	res.end();
 		  }  else {
-		   	  console.log('sending file: ' + filename);
 		   	  switch (path.extname(uri)) {
 		   	  case '.m3u8':
 		  		  fs.readFile(filename, function (err, contents) {
@@ -136,44 +134,50 @@ const PORT = process.env.RING_PORT;
     await promisify(fs.mkdir)(publicOutputDirectory)
   }
 
-  const sipSession = await camera.streamVideo({
-    output: [
-      '-preset',
-      'veryfast',
-      '-g',
-      '25',
-      '-sc_threshold',
-      '0',
-      '-f',
-      'hls',
-      '-hls_time',
-      '2',
-      '-hls_list_size',
-      '6',
-      '-hls_flags',
-      'delete_segments',
-      path.join(publicOutputDirectory, 'stream.m3u8')
-    ]
-  })
+  let sipSession = [];
+  cameras.forEach(async (camera: any, index: number) => {
+    const sipItem = await camera.streamVideo({
+      output: [
+        '-preset',
+        'veryfast',
+        '-g',
+        '25',
+        '-sc_threshold',
+        '0',
+        '-f',
+        'hls',
+        '-hls_time',
+        '2',
+        '-hls_list_size',
+        '6',
+        '-hls_flags',
+        'delete_segments',
+        path.join(publicOutputDirectory, `${index}-stream.m3u8`)
+      ]
+    })
+    sipSession.push(sipItem);
+  });
 
-  sipSession.onCallEnded.subscribe(() => {
-    console.log('Call has ended')
-    server.close(function() {console.log('Server closed!');});
-    // Destroy all open sockets
-    for (var socketId in sockets) {
-      console.log('socket', socketId, 'destroyed');
-      sockets[socketId].destroy();
-    }
-    //app.stop()
-    console.log('Restarting server')
-    startStream()
+  sipSession.forEach((sipItem: any) => {
+    sipItem.onCallEnded.subscribe(() => {
+      console.log('Call has ended')
+      server.close(function() {console.log('Server closed!');});
+      // Destroy all open sockets
+      for (var socketId in sockets) {
+        console.log('socket', socketId, 'destroyed');
+        sockets[socketId].destroy();
+      }
+      //app.stop()
+      console.log('Restarting server')
+      startStream()
+    })
+  
+    setTimeout(function() {
+      console.log('Stopping call...')
+      sipItem.stop()
+      
+    }, 10* 60 * 1000) // 10*60*1000 Stop after 10 minutes.
   })
-
-  setTimeout(function() {
-    console.log('Stopping call...')
-    sipSession.stop()
-    
-  }, 10* 60 * 1000) // 10*60*1000 Stop after 10 minutes.
 }
 
 if(!('RING_REFRESH_TOKEN' in process.env) || !('RING_PORT' in process.env)) {

@@ -49,7 +49,8 @@ var PORT = process.env.RING_PORT;
  **/
 function startStream() {
     return __awaiter(this, void 0, void 0, function () {
-        var ringApi, camera, publicOutputDirectory, server, sockets, nextSocketId, sipSession;
+        var ringApi, cameras, publicOutputDirectory, server, sockets, nextSocketId, sipSession;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -60,48 +61,39 @@ function startStream() {
                     });
                     return [4 /*yield*/, ringApi.getCameras()];
                 case 1:
-                    camera = (_a.sent())[0];
-                    if (!camera) {
+                    cameras = _a.sent();
+                    if (cameras.length <= 0) {
                         console.log('No cameras found');
                         return [2 /*return*/];
                     }
                     publicOutputDirectory = path.join('public/');
-                    /*fs.readdir(publicOutputDirectory, (err, files) => {
-                      if (err) throw err;
-                      for (const file of files) {
-                        var filepath = path.join(publicOutputDirectory,file);
-                        if (path.extname(file) == ".ts") {
-                          fs.unlink(filepath,err => {
-                            if (err) throw err;
-                          });
-                        }
-                      }
-                    });*/
-                    console.log('output directory: ' + publicOutputDirectory);
                     server = http.createServer(function (req, res) {
+                        var _this = this;
                         var uri = url.parse(req.url).pathname;
-                        console.log('requested uri: ' + uri);
                         if (uri == '/index.html' || uri == '/') {
                             res.writeHead(200, { 'Content-Type': 'text/html' });
                             res.write('<html><head><title>Ring Livestream' +
                                 '</title></head><body>');
                             res.write('<h1>Welcome to your Ring Livestream!</h1>');
-                            res.write('<video width="352" height="198" controls autoplay src="public/stream.m3u8"></video>');
+                            cameras.forEach(function (camera, index) { return __awaiter(_this, void 0, void 0, function () {
+                                return __generator(this, function (_a) {
+                                    res.write("<video width=\"352\" height=\"198\" controls autoplay src=\"public/" + index + "-stream.m3u8\"></video>");
+                                    res.write('<br />');
+                                    return [2 /*return*/];
+                                });
+                            }); });
                             res.write('<br/>If you cannot see the video above open <a href="public/stream.m3u8">the stream</a> in a player such as VLC.');
                             res.end();
                             return;
                         }
                         var filename = path.join("./", uri);
-                        console.log('mapped filename: ' + filename);
                         fs.exists(filename, function (exists) {
                             if (!exists) {
-                                console.log('file not found: ' + filename);
                                 res.writeHead(404, { 'Content-Type': 'text/plain' });
                                 res.write('file not found: %s\n', filename);
                                 res.end();
                             }
                             else {
-                                console.log('sending file: ' + filename);
                                 switch (path.extname(uri)) {
                                     case '.m3u8':
                                         fs.readFile(filename, function (err, contents) {
@@ -167,43 +159,56 @@ function startStream() {
                 case 3:
                     _a.sent();
                     _a.label = 4;
-                case 4: return [4 /*yield*/, camera.streamVideo({
-                        output: [
-                            '-preset',
-                            'veryfast',
-                            '-g',
-                            '25',
-                            '-sc_threshold',
-                            '0',
-                            '-f',
-                            'hls',
-                            '-hls_time',
-                            '2',
-                            '-hls_list_size',
-                            '6',
-                            '-hls_flags',
-                            'delete_segments',
-                            path.join(publicOutputDirectory, 'stream.m3u8')
-                        ]
-                    })];
-                case 5:
-                    sipSession = _a.sent();
-                    sipSession.onCallEnded.subscribe(function () {
-                        console.log('Call has ended');
-                        server.close(function () { console.log('Server closed!'); });
-                        // Destroy all open sockets
-                        for (var socketId in sockets) {
-                            console.log('socket', socketId, 'destroyed');
-                            sockets[socketId].destroy();
-                        }
-                        //app.stop()
-                        console.log('Restarting server');
-                        startStream();
+                case 4:
+                    sipSession = [];
+                    cameras.forEach(function (camera, index) { return __awaiter(_this, void 0, void 0, function () {
+                        var sipItem;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: return [4 /*yield*/, camera.streamVideo({
+                                        output: [
+                                            '-preset',
+                                            'veryfast',
+                                            '-g',
+                                            '25',
+                                            '-sc_threshold',
+                                            '0',
+                                            '-f',
+                                            'hls',
+                                            '-hls_time',
+                                            '2',
+                                            '-hls_list_size',
+                                            '6',
+                                            '-hls_flags',
+                                            'delete_segments',
+                                            path.join(publicOutputDirectory, index + "-stream.m3u8")
+                                        ]
+                                    })];
+                                case 1:
+                                    sipItem = _a.sent();
+                                    sipSession.push(sipItem);
+                                    return [2 /*return*/];
+                            }
+                        });
+                    }); });
+                    sipSession.forEach(function (sipItem) {
+                        sipItem.onCallEnded.subscribe(function () {
+                            console.log('Call has ended');
+                            server.close(function () { console.log('Server closed!'); });
+                            // Destroy all open sockets
+                            for (var socketId in sockets) {
+                                console.log('socket', socketId, 'destroyed');
+                                sockets[socketId].destroy();
+                            }
+                            //app.stop()
+                            console.log('Restarting server');
+                            startStream();
+                        });
+                        setTimeout(function () {
+                            console.log('Stopping call...');
+                            sipItem.stop();
+                        }, 10 * 60 * 1000); // 10*60*1000 Stop after 10 minutes.
                     });
-                    setTimeout(function () {
-                        console.log('Stopping call...');
-                        sipSession.stop();
-                    }, 10 * 60 * 1000); // 10*60*1000 Stop after 10 minutes.
                     return [2 /*return*/];
             }
         });
