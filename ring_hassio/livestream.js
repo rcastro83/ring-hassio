@@ -66,6 +66,7 @@ function startStream() {
                         console.log('No cameras found');
                         return [2 /*return*/];
                     }
+                    console.log('Cameras available:', cameras.length);
                     publicOutputDirectory = path.join('public/');
                     server = http.createServer(function (req, res) {
                         var _this = this;

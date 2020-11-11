@@ -29,6 +29,8 @@ const PORT = process.env.RING_PORT;
     return
   }
 
+  console.log('Cameras available:', cameras.length);
+
   //const publicOutputDirectory = path.join('public','output')
   const publicOutputDirectory = path.join('public/')
   /*fs.readdir(publicOutputDirectory, (err, files) => {
