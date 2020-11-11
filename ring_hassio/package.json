@@ -1,7 +1,7 @@
 {
-    "name": "ring_livestream",
-    "version": "1.3.0",
-    "description": "Ring Livestream addon",
+    "name": "ring_livestream_multicamera",
+    "version": "1.4.0",
+    "description": "Ring Livestream addon Multicamera",
     "author": "Jeroen ter Heerdt",
     "main": "livestream.js",
     "scripts": {
