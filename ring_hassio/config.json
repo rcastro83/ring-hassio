@@ -1,9 +1,9 @@
 {
-    "name": "Ring Livestream",
-    "version": "1.3",
+    "name": "Ring Multiple Cameras Live Stream",
+    "version": "1.4",
     "slug": "ringlivestream",
-    "description": "A Home Assistant add-on to enable live streams of Ring Cameras.",
-    "url": "https://github.com/jeroenterheerdt/ring-hassio",
+    "description": "Ring Multiple Cameras Live Stream",
+    "url": "https://github.com/rcastro83/ring-hassio",
     "startup": "application",
     "arch": [
       "aarch64",
@@ -19,7 +19,7 @@
     "ports_description": {
         "3000/tcp": "The port you want to expose. You will need to expose this port in your router as well and make sure it is matching the port setting in the options."
     },
-    "webui": "http://[HOST]:[PORT:3000]/index.html",
+    "webui": "http://[HOST]:[PORT:3000]/index-multicamera.html",
     "options": {
         "ring_refresh_token": "refresh_token",
         "port": 3000

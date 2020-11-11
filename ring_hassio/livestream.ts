@@ -47,7 +47,7 @@ const PORT = process.env.RING_PORT;
 
   var server = http.createServer(function (req, res) {
     var uri = url.parse(req.url).pathname;
-    if (uri == '/index.html' || uri == '/') {
+    if (uri == '/index-multicamera.html' || uri == '/') {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.write('<html><head><title>Ring Livestream' +
           '</title></head><body>');

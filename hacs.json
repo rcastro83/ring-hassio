@@ -1,5 +1,5 @@
 {
-    "name": "Ring Hass-io Add-on (Multiple Cameras)",
+    "name": "Ring Multiple Cameras Live Stream",
     "render_readme": true,
     "content_in_root": false,
     "domains": ["camera"]
